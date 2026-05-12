@@ -36,8 +36,7 @@ vector<Web> buildWebs(const vector<LiveRange> &ranges) {
 
                 for (size_t j = 0; j < varRanges.size(); ++j) {
                     if (!visited[j]) {
-                        if (varRanges[currIdx].overlapsWith(varRanges[j]) ||
-                            varRanges[currIdx].adjacentTo(varRanges[j])) {
+                        if (varRanges[currIdx].overlapsWith(varRanges[j])) {
                             visited[j] = true;
                             toProcess.push_back(j);
                         }
