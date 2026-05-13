@@ -31,18 +31,50 @@ void writeOutput(const string& path, const AllocationResult& result,
         return;
     }
 
-    for (int r = 0; r < result.registersUsed; r++) {
-        out << "r" << r << " -> ";
-        bool first = true;
+    bool hasSpills = false;
+    if (config.type == AlgorithmType::SPILLING) {
+        for (const auto& web : webs)
+            if (result.assignment[web.id] < 0) { hasSpills = true; break; }
+    }
+
+    if (hasSpills) {
+        for (const auto& web : webs)
+            if (result.assignment[web.id] < 0)
+                out << "# web" << web.id << " was spilled to memory\n";
+        for (int r = 0; r < result.registersUsed; r++) {
+            out << "r" << r << " -> ";
+            bool first = true;
+            for (const auto& web : webs) {
+                if (result.assignment[web.id] == r) {
+                    if (!first) out << ", ";
+                    out << "web" << web.id;
+                    first = false;
+                }
+            }
+            out << "\n";
+        }
+        bool firstM = true;
         for (const auto& web : webs) {
-            if (result.assignment[web.id] == r) {
-                if (!first) out << ", ";
+            if (result.assignment[web.id] < 0) {
+                if (firstM) { out << "M -> "; firstM = false; }
+                else out << ", ";
                 out << "web" << web.id;
-                first = false;
             }
         }
         out << "\n";
+    } else {
+        for (int r = 0; r < result.registersUsed; r++) {
+            out << "r" << r << " -> ";
+            bool first = true;
+            for (const auto& web : webs) {
+                if (result.assignment[web.id] == r) {
+                    if (!first) out << ", ";
+                    out << "web" << web.id;
+                    first = false;
+                }
+            }
+            out << "\n";
+        }
     }
-
     out << "# Total registers used: " << result.registersUsed << "\n";
 }

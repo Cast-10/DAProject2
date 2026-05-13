@@ -1,0 +1,10 @@
+# Webs constructed with respective program points sorted in ascending order
+webs: 2
+web0: 1+,2,3,4,7,8,9-,11,12,13-
+web1: 7+,8,9,10-
+# Registers available: 1
+# Registers used, followed by assignment webs using spilling algorithm
+# web0 was spilled to memory
+r0 -> web1
+M -> web0
+# Total registers used: 1
