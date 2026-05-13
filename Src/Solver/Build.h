@@ -1,12 +1,10 @@
-//
-// Created by ze on 11/05/26.
-//
-
 #ifndef DAPROJECT2_BUILD_H
 #define DAPROJECT2_BUILD_H
+
 #include "Graph.h"
 #include "LiveRange.h"
 #include "Web.h"
+
 using namespace std;
 
 vector<Web> buildWebs(const vector<LiveRange> &ranges);
