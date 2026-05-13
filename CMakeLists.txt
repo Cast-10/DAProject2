@@ -6,7 +6,11 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 
 add_executable(myProg
         Src/myProg.cpp
+        Src/Solver/Build.cpp
+        Src/Solver/RegisterAlloc.cpp
+        Src/Solver/Writer.cpp
 )
 target_include_directories(myProg PRIVATE
         Src/DataStructures
+        Src/Solver
 )
