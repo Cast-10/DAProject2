@@ -10,6 +10,6 @@
 using namespace std;
 
 void writeOutput(const string& path, const AllocationResult& result,
-                 const vector<Web>& webs, const AlgorithmConfig& config);
+                 const AlgorithmConfig& config);
 
 #endif //DAPROJECT2_WRITTER_H

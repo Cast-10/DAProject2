@@ -4,7 +4,7 @@ web0: 1+,2,3,4,5,6-
 web1: 9+,10,11,12-,13,14-,20+
 web2: 7+,8,9,10-
 # Registers available: 2
-# Registers used, followed by assignment webs using basic algorithm
+# Registers used, followed by assignment webs using splitting algorithm
 r0 -> web0, web2
 r1 -> web1
 # Total registers used: 2

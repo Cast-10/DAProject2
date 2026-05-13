@@ -11,4 +11,7 @@ AllocationResult basicAllocation(const std::vector<Web>& webs, const Graph<int>&
 AllocationResult spillingAllocation(const std::vector<Web>& webs, const Graph<int>& ig,
                                     const AlgorithmConfig& config);
 
+AllocationResult splittingAllocation(const std::vector<Web>& webs, const Graph<int>& ig,
+                                     const AlgorithmConfig& config);
+
 #endif //DAPROJECT2_REGISTERALLOC_H

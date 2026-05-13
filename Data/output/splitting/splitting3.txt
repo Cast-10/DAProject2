@@ -1,0 +1,9 @@
+# Webs constructed with respective program points sorted in ascending order
+webs: 2
+web0: 1+,2,3,4,5,6-,9-,10,11,12-,13,14-,20+
+web1: 7+,8,9,10-
+# Registers available: 2
+# Registers used, followed by assignment webs using splitting algorithm
+r0 -> web1
+r1 -> web0
+# Total registers used: 2

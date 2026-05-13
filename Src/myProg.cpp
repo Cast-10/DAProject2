@@ -39,12 +39,15 @@ int main(int argc, char* argv[]) {
         case AlgorithmType::SPILLING:
             result = spillingAllocation(webs, ig, config);
             break;
+        case AlgorithmType::SPLITTING:
+            result = splittingAllocation(webs, ig, config);
+            break;
         default:
             cerr << "ERROR: Algorithm not implemented yet\n";
             return 1;
     }
 
-    writeOutput(outputFile, result, webs, config);
+    writeOutput(outputFile, result, config);
 
     if (!result.feasible) {
         cerr << "Register allocation infeasible with " << config.numRegisters << " registers\n";

@@ -29,9 +29,15 @@ struct Web {
     int id;                         ///< Unique web identifier (assigned after all merges)
     std::string varName;            ///< Name of the original variable
     std::map<int, char> points;     ///< line -> annotation ('+', '-', or '\0')
+    std::string displayName;        ///< Display name for output, e.g. "web0", "web2.1"
 
     Web() : id(-1) {}
-    Web(int id, const std::string& name) : id(id), varName(name) {}
+    Web(int id, const std::string& name)
+        : id(id), varName(name), displayName("web" + std::to_string(id)) {}
+
+    std::string webName() const {
+        return displayName.empty() ? "web" + std::to_string(id) : displayName;
+    }
 
     /**
      * @brief Merges a LiveRange into this web.

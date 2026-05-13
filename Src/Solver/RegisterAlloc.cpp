@@ -1,8 +1,10 @@
 #include "RegisterAlloc.h"
+#include "Build.h"
 #include <vector>
 #include <set>
 #include <queue>
 #include <algorithm>
+#include <climits>
 
 using namespace std;
 
@@ -217,4 +219,116 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
     result.registersUsed = (maxReg >= 0) ? maxReg + 1 : 0;
     result.feasible = true;
     return result;
+}
+
+// --- Splitting helpers ---
+
+static void reindexWebs(vector<Web>& webs) {
+    for (int i = 0; i < (int)webs.size(); i++)
+        webs[i].id = i;
+}
+
+// Split web w after pts[splitIdx]: first half ends with '-', second begins with '+'
+static pair<Web, Web> doSplit(const Web& w, int splitIdx, int id1, int id2) {
+    vector<pair<int,char>> pts(w.points.begin(), w.points.end());
+    int splitLine = pts[splitIdx].first;
+
+    Web h1(id1, w.varName);
+    h1.displayName = w.displayName + ".1";
+    for (int i = 0; i <= splitIdx; i++) {
+        int line = pts[i].first;
+        h1.points[line] = (line == splitLine) ? '-' : pts[i].second;
+    }
+
+    Web h2(id2, w.varName);
+    h2.displayName = w.displayName + ".2";
+    for (int i = splitIdx; i < (int)pts.size(); i++) {
+        int line = pts[i].first;
+        h2.points[line] = (line == splitLine) ? '+' : pts[i].second;
+    }
+
+    return {h1, h2};
+}
+
+// For web at webIdx, find the split index that minimises max(deg(h1), deg(h2))
+static int bestSplitIdx(const Web& w, const vector<Web>& webs, int webIdx) {
+    vector<pair<int,char>> pts(w.points.begin(), w.points.end());
+    int n = (int)pts.size();
+
+    int best = 0, bestCost = INT_MAX;
+    for (int si = 0; si < n - 1; si++) {
+        int splitLine = pts[si].first;
+
+        Web h1(0, w.varName), h2(0, w.varName);
+        for (int i = 0; i <= si; i++) {
+            int line = pts[i].first;
+            h1.points[line] = (line == splitLine) ? '-' : pts[i].second;
+        }
+        for (int i = si; i < n; i++) {
+            int line = pts[i].first;
+            h2.points[line] = (line == splitLine) ? '+' : pts[i].second;
+        }
+
+        int d1 = 0, d2 = 0;
+        for (int j = 0; j < (int)webs.size(); j++) {
+            if (j == webIdx) continue;
+            if (h1.interferesWith(webs[j])) d1++;
+            if (h2.interferesWith(webs[j])) d2++;
+        }
+        int cost = max(d1, d2);
+        if (cost < bestCost) { bestCost = cost; best = si; }
+    }
+    return best;
+}
+
+/**
+ * Register allocation via graph coloring with controlled web splitting.
+ *
+ * Tries basic allocation first. When the graph is not K-colorable, selects
+ * the highest-degree web and splits it at the point that minimises the maximum
+ * degree of the two resulting halves. Repeats up to maxSplit (config.param)
+ * times. The split point becomes a '-' (save) in the first half and a '+'
+ * (reload) in the second half; by the def/use non-interference rule the two
+ * halves never interfere with each other.
+ */
+AllocationResult splittingAllocation(const vector<Web>& inputWebs, const Graph<int>& /*ig*/,
+                                     const AlgorithmConfig& config) {
+    vector<Web> webs = inputWebs;
+    int maxSplits = config.param;
+
+    for (int splitsUsed = 0; splitsUsed <= maxSplits; splitsUsed++) {
+        reindexWebs(webs);
+        Graph<int> ig = buildInterferenceGraph(webs);
+        AllocationResult result = basicAllocation(webs, ig, config);
+
+        if (result.feasible) return result;
+        if (splitsUsed == maxSplits) return result;
+
+        // Degree of each web in the current interference graph
+        int n = (int)webs.size();
+        vector<int> degree(n, 0);
+        for (auto* v : ig.getVertexSet())
+            degree[v->getInfo()] = (int)v->getAdj().size();
+
+        // Choose the highest-degree splittable web (>= 2 points)
+        int webIdx = -1;
+        for (int i = 0; i < n; i++) {
+            if ((int)webs[i].points.size() < 2) continue;
+            if (webIdx == -1 || degree[i] > degree[webIdx]) webIdx = i;
+        }
+        if (webIdx == -1) return result; // no splittable web
+
+        int si = bestSplitIdx(webs[webIdx], webs, webIdx);
+        int nextId = n; // will be reindexed next iteration
+        auto [h1, h2] = doSplit(webs[webIdx], si, nextId, nextId + 1);
+
+        webs.erase(webs.begin() + webIdx);
+        webs.push_back(h1);
+        webs.push_back(h2);
+    }
+
+    AllocationResult fail;
+    fail.webs = webs;
+    fail.feasible = false;
+    return fail;
 }
