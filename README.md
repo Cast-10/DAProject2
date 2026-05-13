@@ -274,25 +274,27 @@ Register allocation infeasible with K registers
 
 ## Example configs (`Data/registers/`)
 
-| File | Registers | Algorithm | Parameter | Suggested ranges file |
-|---|---|---|---|---|
-| `registers1.txt` | 1 | basic | — | any (will fail for most) |
-| `registers2.txt` | 2 | basic | — | `ranges4.txt` — sequential, 2-colorable |
-| `registers3.txt` | 3 | basic | — | `ranges1.txt` — needs 2 registers |
-| `spilling_regs1.txt` | 1 | spilling | 2 | `ranges1.txt` — needs 2 spills with 1 register |
-| `spilling_regs2.txt` | 2 | spilling | 1 | `ranges2.txt` — 1 spill sufficient |
-| `spilling_regs3.txt` | 2 | spilling | 3 | `ranges5.txt` — dense graph, up to 3 spills |
+| File                  | Registers | Algorithm | Parameter | Suggested ranges file                          |
+|-----------------------|---|---|---|------------------------------------------------|
+| `registers1.txt`      | 1 | basic | — | `ranges4.txt  — needs 1 register               |
+| `registers2.txt`      | 2 | basic | — | `ranges3.txt` — sequential, 2-colorable        |
+| `registers3.txt`      | 3 | basic | — | `ranges6.txt` — needs 3 registers              |
+| `spilling_regs1.txt`  | 1 | spilling | 2 | `ranges7.txt` — K3 triangle, needs exactly 2 spills with 1 register (budget fully used) |
+| `spilling_regs2.txt`  | 2 | spilling | 1 | `ranges6.txt` — 5-cycle, needs exactly 1 spill with 2 registers (budget fully used)     |
+| `spilling_regs3.txt`  | 2 | spilling | 3 | `ranges7.txt` — K3 triangle, needs 1 spill with 2 registers (budget has slack)          |
+| `splitting_regs1.txt` | 1 | splitting | 2 | `ranges5.txt  — needs 1 register               |
+ | `splitting_regs2txt` | 1 | splitting | 2 | `ranges7.txt` — needs 1 split only             |
 
 ---
 
-## Usage
+## Usage (temporary)
 
 ```
-./DAProject2 <ranges_file> <registers_file> <output_file>
+./cmake-build-debug/myProg ./Data/ranges/<ranges_file> ./Data/registers/<registers_file> ./Data/output/<output_folder>/<output_file>
 ```
 
 Example:
 
 ```
-./DAProject2 Data/ranges/ranges1.txt Data/registers/spilling_regs1.txt Data/output/out.txt
+./cmake-build-debug/myProg ./Data/ranges/ranges1.txt ./Data/registers/spilling_regs1.txt Data/output/spilling/out.txt
 ```
