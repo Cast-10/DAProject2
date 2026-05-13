@@ -22,6 +22,7 @@ struct LiveRange {
     std::string varName;        ///< Name of the variable this range belongs to
     std::vector<Point> points;  ///< Ordered list of program points in this range
 
+    LiveRange() : varName("") {}
     LiveRange(const std::string& name) : varName(name) {}
 
     /// Add a point to this live range

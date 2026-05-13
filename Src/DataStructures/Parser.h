@@ -5,6 +5,7 @@
 #include "Point.h"
 #include "AlgorithmConfig.h"
 #include "../Solver/Build.h"
+#include <algorithm>
 #include <fstream>
 #include <sstream>
 #include <iostream>
@@ -175,28 +176,7 @@ static void parseInput(const string &rangesFile,
     // 4. Parse config
     config = parseConfigFile(configFile);
 
-    // ── Summary to stdout ──────────────────────────
-    cout << "\n=== Parsed Input ===\n";
-    cout << "Live ranges read : " << ranges.size()  << "\n";
-    cout << "Webs built       : " << webs.size()    << "\n";
-    cout << "Registers        : " << config.numRegisters << "\n";
-    cout << "Algorithm        : " << config.typeName();
-    if (config.param > 0)
-        cout << " (K=" << config.param << ")";
-    cout << "\n";
 
-    cout << "\n--- Webs ---\n";
-    for (auto &w : webs)
-        cout << "  " << w.pointsString() << "  [var=" << w.varName << "]\n";
-
-    cout << "\n--- Interference Graph ---\n";
-    for (auto *v : interferenceGraph.getVertexSet()) {
-        cout << "  web" << v->getInfo() << " interferes with: ";
-        for (auto &e : v->getAdj())
-            cout << "web" << e.getDest()->getInfo() << " ";
-        cout << "\n";
-    }
-    cout << "====================\n\n";
 }
 
 #endif // PARSER_H

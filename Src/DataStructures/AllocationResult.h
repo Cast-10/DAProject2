@@ -2,6 +2,7 @@
 #define DAPROJECT2_ALLOCATIONRESULT_H
 
 #include "Web.h"
+#include "AlgorithmConfig.h"
 #include <vector>
 #include <string>
 
