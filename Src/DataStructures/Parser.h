@@ -1,13 +1,15 @@
 #ifndef PARSER_H
 #define PARSER_H
 
-#include "RegisterAlloc.h"
-#include "../DataStructures/Graph.h"
-#include "Build.h"
+#include "Graph.h"
+#include "Point.h"
+#include "AlgorithmConfig.h"
+#include "../Solver/Build.h"
 #include <fstream>
 #include <sstream>
 #include <iostream>
 #include <stdexcept>
+
 
 using namespace std;
 
@@ -24,7 +26,7 @@ static string trim(const string &s) {
 
 // Parse a single token, e.g. "7+", "10-", "8"
 
-static ProgramPoint parsePoint(const string &token) {
+static Point parsePoint(const string &token) {
     string t = trim(token);
     if (t.empty()) throw runtime_error("Empty program point token");
 
@@ -35,7 +37,8 @@ static ProgramPoint parsePoint(const string &token) {
     if (t.back() == '-') { isLastUse = true; t.pop_back(); }
 
     int lineNum = stoi(t); // throws if not a number
-    return ProgramPoint(lineNum, isDef, isLastUse);
+    char annot = isDef ? '+' : (isLastUse ? '-' : '\0');
+    return Point(lineNum, annot);
 }
 
 
@@ -105,12 +108,12 @@ static vector<LiveRange> parseLiveRangesFile(const string &filename) {
 //   registers: N
 //   algorithm: basic          (or spilling,2 / splitting,2 / free)
 
-static AllocConfig parseConfigFile(const string &filename) {
+static AlgorithmConfig parseConfigFile(const string &filename) {
     ifstream file(filename);
     if (!file.is_open())
         throw runtime_error("Cannot open config file: " + filename);
 
-    AllocConfig cfg;
+    AlgorithmConfig cfg;
     string line;
 
     while (getline(file, line)) {
@@ -128,12 +131,17 @@ static AllocConfig parseConfigFile(const string &filename) {
         } else if (key == "algorithm") {
             // val could be "basic", "free", "spilling, 2", "splitting, 2"
             size_t comma = val.find(',');
+            string algName;
             if (comma != string::npos) {
-                cfg.algorithm      = trim(val.substr(0, comma));
-                cfg.algorithmParam = stoi(trim(val.substr(comma + 1)));
+                algName = trim(val.substr(0, comma));
+                cfg.param = stoi(trim(val.substr(comma + 1)));
             } else {
-                cfg.algorithm = trim(val);
+                algName = trim(val);
             }
+            if (algName == "basic")     cfg.type = AlgorithmType::BASIC;
+            if (algName == "spilling")  cfg.type = AlgorithmType::SPILLING;
+            if (algName == "splitting") cfg.type = AlgorithmType::SPLITTING;
+            if (algName == "free")      cfg.type = AlgorithmType::FREE;
         }
     }
 
@@ -151,7 +159,7 @@ static void parseInput(const string &rangesFile,
                         const string &configFile,
                         vector<Web>  &webs,
                         Graph<int>   &interferenceGraph,
-                        AllocConfig  &config) {
+                        AlgorithmConfig &config) {
 
     // 1. Parse live ranges
     vector<LiveRange> ranges = parseLiveRangesFile(rangesFile);
@@ -172,14 +180,14 @@ static void parseInput(const string &rangesFile,
     cout << "Live ranges read : " << ranges.size()  << "\n";
     cout << "Webs built       : " << webs.size()    << "\n";
     cout << "Registers        : " << config.numRegisters << "\n";
-    cout << "Algorithm        : " << config.algorithm;
-    if (config.algorithmParam > 0)
-        cout << " (K=" << config.algorithmParam << ")";
+    cout << "Algorithm        : " << config.typeName();
+    if (config.param > 0)
+        cout << " (K=" << config.param << ")";
     cout << "\n";
 
     cout << "\n--- Webs ---\n";
     for (auto &w : webs)
-        cout << "  " << w.toString() << "  [var=" << w.varName << "]\n";
+        cout << "  " << w.pointsString() << "  [var=" << w.varName << "]\n";
 
     cout << "\n--- Interference Graph ---\n";
     for (auto *v : interferenceGraph.getVertexSet()) {
