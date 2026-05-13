@@ -255,8 +255,8 @@ static int bestSplitIdx(const Web& w, const vector<Web>& webs, int webIdx) {
     vector<pair<int,char>> pts(w.points.begin(), w.points.end());
     int n = (int)pts.size();
 
-    int best = 0, bestCost = INT_MAX;
-    for (int si = 0; si < n - 1; si++) {
+    int best = 1, bestCost = INT_MAX;
+    for (int si = 1; si < n - 1; si++) {
         int splitLine = pts[si].first;
 
         Web h1(0, w.varName), h2(0, w.varName);
@@ -310,10 +310,10 @@ AllocationResult splittingAllocation(const vector<Web>& inputWebs, const Graph<i
         for (auto* v : ig.getVertexSet())
             degree[v->getInfo()] = (int)v->getAdj().size();
 
-        // Choose the highest-degree splittable web (>= 2 points)
+        // Choose the highest-degree splittable web (>= 3 points, so si >= 1 is valid)
         int webIdx = -1;
         for (int i = 0; i < n; i++) {
-            if ((int)webs[i].points.size() < 2) continue;
+            if ((int)webs[i].points.size() < 3) continue;
             if (webIdx == -1 || degree[i] > degree[webIdx]) webIdx = i;
         }
         if (webIdx == -1) return result; // no splittable web
