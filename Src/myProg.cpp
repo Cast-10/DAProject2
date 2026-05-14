@@ -15,9 +15,8 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    const string rangesFile = argv[1];
-    const string configFile = argv[2];
-    const string outputFile = argv[3];
+    const string rangesFile = string("./Data/ranges/") + argv[1];
+    const string configFile = string("./Data/registers/") + argv[2];
 
     vector<Web> webs;
     Graph<int>  ig;
@@ -29,6 +28,12 @@ int main(int argc, char* argv[]) {
         cerr << "ERROR: " << e.what() << "\n";
         return 1;
     }
+
+    string outputFile;
+    if (config.type == AlgorithmType::BASIC) outputFile = string("./Data/output/basic/") + argv[3];
+    else if (config.type == AlgorithmType::SPILLING) outputFile = string("./Data/output/spilling/") + argv[3];
+    else if (config.type == AlgorithmType::SPLITTING) outputFile = string("./Data/output/splitting/") + argv[3];
+    else outputFile = string("./Data/output/free/") + argv[3];
 
     AllocationResult result;
 

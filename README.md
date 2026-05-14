@@ -60,14 +60,11 @@ supports bidirectional-edge pairs needed for flow and coloring algorithms.
 
 ### New `Vertex` fields
 
-| Field | Type | Purpose |
-|---|---|---|
-| `dist` | `double` | General-purpose distance/priority field. Used by Dijkstra and — negated — as the priority key for DSATUR (see below). |
-| `path` | `Edge<T>*` | Back-pointer for shortest-path reconstruction. |
-| `incoming` | `vector<Edge<T>*>` | List of incoming edges; maintained automatically by `addEdge` / `deleteEdge`. |
-| `satur` | `int` | **Saturation degree** — number of distinct colors already assigned to colored neighbors. Used exclusively by `freeAllocation` (DSATUR). Initialized to 0 before each run. |
+| Field        | Type | Purpose |
+|--------------|---|---|
+|  `satur`     | `int` | **Saturation degree** — number of distinct colors already assigned to colored neighbors. Used exclusively by `freeAllocation` (DSATUR). Initialized to 0 before each run. |
 | `queueIndex` | `int` | Heap position index required by `MutablePriorityQueue`. Managed automatically by the queue. |
-| `indegree` | `unsigned int` | Degree in the interference graph, used as a tie-breaker in `operator<`. Initialized to `0` by default to avoid undefined behaviour before `setIndegree` is called. |
+| `indegree`   | `unsigned int` | Degree in the interference graph, used as a tie-breaker in `operator<`. Initialized to `0` by default to avoid undefined behaviour before `setIndegree` is called. |
 
 ### `operator<` — ordering for `MutablePriorityQueue`
 
@@ -84,15 +81,6 @@ The comparison is **inverted** relative to the usual `<` so that
 **highest** saturation (and, on ties, the highest degree) — exactly what DSATUR
 requires. This means the queue acts as a max-saturation priority queue despite
 being implemented as a min-heap.
-
-### New `Graph` members
-
-| Member | Purpose |
-|---|---|
-| `addBidirectionalEdge(u, v, w)` | Adds edges in both directions and links them via `setReverse`, enabling reverse-edge traversal. |
-| `distMatrix`, `pathMatrix` | Pre-allocated 2-D arrays for Floyd-Warshall; managed by the destructor. |
-| `~Graph()` | Destructor that frees `distMatrix` and `pathMatrix` with `deleteMatrix`. |
-
 ---
 
 ## Building Webs
@@ -119,7 +107,7 @@ interfere (the use occurs before the definition at that program point).
 
 ### Basic — `basicAllocation`
 
-A Chaitin-style greedy graph-coloring allocator with **no spilling or splitting**.
+A greedy graph-coloring allocator with **no spilling or splitting**.
 
 **Phase 1 — Simplification**
 
@@ -419,11 +407,11 @@ Register allocation infeasible with K registers
 ## Usage (temporary)
 
 ```
-./cmake-build-debug/myProg ./Data/ranges/<ranges_file> ./Data/registers/<registers_file> ./Data/output/<output_folder>/<output_file>
+./cmake-build-debug/myProg <ranges_file[i]>.txt <registers_file[i]>.txt <output_file>.txt
 ```
 
 Example:
 
 ```
-./cmake-build-debug/myProg ./Data/ranges/ranges1.txt ./Data/registers/spilling_regs1.txt Data/output/spilling/out.txt
+./cmake-build-debug/myProg ranges7.txt free_regs3.txt free7.txt
 ```
