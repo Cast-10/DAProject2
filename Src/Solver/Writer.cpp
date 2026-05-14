@@ -24,14 +24,14 @@ void writeOutput(const string& path, const AllocationResult& result,
     for (const auto& web : webs)
         out << web.webName() << ": " << web.pointsString() << "\n";
 
-    out << "# Registers available: " << config.numRegisters << "\n"
-        << "# Registers used, followed by assignment webs using " << config.typeName() << " algorithm\n";
-
+    out << "# Registers available: " << config.numRegisters << "\n";
     if (!result.feasible) {
         out << "Register allocation infeasible with "
             << config.numRegisters << " registers\n";
         return;
     }
+    out << "# Registers used, followed by assignment webs using " << config.typeName() << " algorithm\n";
+
 
     bool hasSpills = (config.type == AlgorithmType::SPILLING);
     if (hasSpills) {
