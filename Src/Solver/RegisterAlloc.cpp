@@ -6,6 +6,7 @@
 #include <queue>
 #include <algorithm>
 #include <climits>
+#include <stack>
 
 using namespace std;
 
@@ -48,7 +49,7 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
         degree[i] = (int)adj[i].size();
 
     vector<bool> removed(n, false);
-    vector<int> stk;
+    stack<int> stk;
 
     queue<int> q;
     for (int i = 0; i < n; i++) {
@@ -60,7 +61,7 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
 
     while (!q.empty()) {
         int u = q.front(); q.pop();
-        stk.push_back(u);
+        stk.push(u);
 
         for (int nb : adj[u]) {
             if (!removed[nb]) {
@@ -85,8 +86,8 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
     // Phase 2: color in reverse simplification order
     int maxReg = 0;
     while (!stk.empty()) {
-        int webId = stk.back();
-        stk.pop_back();
+        int webId = stk.top();
+        stk.pop();
 
         set<int> forbidden;
         for (int nb : adj[webId]) {
@@ -154,7 +155,7 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
 
     vector<bool> removed(n, false);
     vector<bool> spilled(n, false);
-    vector<int>  stk;
+    stack<int>   stk;
     int spillCount = 0;
 
     // Phase 1: simplification with spilling fallback
@@ -166,7 +167,7 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
             for (int i = 0; i < n; i++) {
                 if (removed[i] || degree[i] >= config.numRegisters) continue;
                 removed[i] = true;
-                stk.push_back(i);
+                stk.push(i);
                 for (int nb : adj[i])
                     if (!removed[nb]) degree[nb]--;
                 any = true;
@@ -202,8 +203,8 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
     // Phase 2: color in reverse simplification order; spilled nodes keep -1
     int maxReg = -1;
     while (!stk.empty()) {
-        int webId = stk.back();
-        stk.pop_back();
+        int webId = stk.top();
+        stk.pop();
 
         set<int> forbidden;
         for (int nb : adj[webId])
