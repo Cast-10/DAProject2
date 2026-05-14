@@ -1,5 +1,6 @@
 #include "RegisterAlloc.h"
 #include "Build.h"
+#include "MutablePriorityQueue.h"
 #include <vector>
 #include <set>
 #include <queue>
@@ -38,7 +39,7 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
     for (auto* v : ig.getVertexSet()) {
         int u = v->getInfo();
         for (const auto& e : v->getAdj())
-            adj[u].insert(e.getDest()->getInfo());
+            adj[u].insert(e->getDest()->getInfo());
     }
 
     // Phase 1: simplification
@@ -144,7 +145,7 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
     for (auto* v : ig.getVertexSet()) {
         int u = v->getInfo();
         for (const auto& e : v->getAdj())
-            adj[u].insert(e.getDest()->getInfo());
+            adj[u].insert(e->getDest()->getInfo());
     }
 
     vector<int>  degree(n);
@@ -331,4 +332,65 @@ AllocationResult splittingAllocation(const vector<Web>& inputWebs, const Graph<i
     fail.webs = webs;
     fail.feasible = false;
     return fail;
+}
+
+AllocationResult freeAllocation(const vector<Web>& inputWebs, const Graph<int>& ig,
+                                const AlgorithmConfig& config) {
+    AllocationResult result;
+    result.webs = inputWebs;
+    int n = (int)inputWebs.size();
+    result.assignment.assign(n, -1);
+
+    if (n == 0) {
+        result.feasible = true;
+        result.registersUsed = 0;
+        return result;
+    }
+
+    vector<vector<bool>> colors(n, vector<bool>(config.numRegisters, false));
+
+    MutablePriorityQueue<Vertex<int>> mpq;
+    for (auto v : ig.getVertexSet()) {
+        v->setIndegree((unsigned int)v->getAdj().size());
+        v->setSatur(0);
+        mpq.insert(v);
+    }
+
+    int maxReg = -1;
+    while (!mpq.empty()) {
+        Vertex<int>* top = mpq.extractMin();
+        int webId = top->getInfo();
+
+        int check = -1;
+        for (int i = 0; i < config.numRegisters; i++) {
+            if (!colors[webId][i]) {
+                check = i;
+                break;
+            }
+        }
+
+        if (check == -1) {
+            result.feasible = false;
+            result.registersUsed = 0;
+            return result;
+        }
+
+        result.assignment[webId] = check;
+        maxReg = max(maxReg, check);
+
+        for (auto edge : top->getAdj()) {
+            auto dest = edge->getDest();
+            if (result.assignment[dest->getInfo()] != -1) continue;
+
+            if (!colors[dest->getInfo()][check]) {
+                colors[dest->getInfo()][check] = true;
+                dest->setSatur(dest->getSatur() + 1);
+                mpq.decreaseKey(dest);
+            }
+        }
+    }
+
+    result.registersUsed = maxReg + 1;
+    result.feasible = true;
+    return result;
 }

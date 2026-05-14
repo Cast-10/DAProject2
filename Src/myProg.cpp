@@ -42,6 +42,9 @@ int main(int argc, char* argv[]) {
         case AlgorithmType::SPLITTING:
             result = splittingAllocation(webs, ig, config);
             break;
+        case AlgorithmType::FREE:
+            result = freeAllocation(webs, ig, config);
+            break;
         default:
             cerr << "ERROR: Algorithm not implemented yet\n";
             return 1;

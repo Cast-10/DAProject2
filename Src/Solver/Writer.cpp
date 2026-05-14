@@ -33,51 +33,40 @@ void writeOutput(const string& path, const AllocationResult& result,
     out << "# Registers used, followed by assignment webs using " << config.typeName() << " algorithm\n";
 
 
-    bool hasSpills = (config.type == AlgorithmType::SPILLING);
-    if (hasSpills) {
-        hasSpills = false;
-        for (const auto& web : webs)
-            if (result.assignment[web.id] < 0) { hasSpills = true; break; }
-    }
+    bool hasSpills = false;
+    for (const auto& web : webs)
+        if (result.assignment[web.id] < 0) { hasSpills = true; break; }
 
-    if (hasSpills) {
+    if (hasSpills)
         for (const auto& web : webs)
             if (result.assignment[web.id] < 0)
                 out << "# " << web.webName() << " was spilled to memory\n";
-        for (int r = 0; r < result.registersUsed; r++) {
-            out << "r" << r << " -> ";
-            bool first = true;
-            for (const auto& web : webs) {
-                if (result.assignment[web.id] == r) {
-                    if (!first) out << ", ";
-                    out << web.webName();
-                    first = false;
-                }
-            }
-            out << "\n";
-        }
-        bool firstM = true;
+
+    for (int r = 0; r < result.registersUsed; r++) {
+        out << "r" << r << " -> ";
+        bool first = true;
         for (const auto& web : webs) {
-            if (result.assignment[web.id] < 0) {
-                if (firstM) { out << "M -> "; firstM = false; }
-                else out << ", ";
+            if (result.assignment[web.id] == r) {
+                if (!first) out << ", ";
                 out << web.webName();
+                first = false;
             }
         }
         out << "\n";
-    } else {
-        for (int r = 0; r < result.registersUsed; r++) {
-            out << "r" << r << " -> ";
-            bool first = true;
-            for (const auto& web : webs) {
-                if (result.assignment[web.id] == r) {
-                    if (!first) out << ", ";
-                    out << web.webName();
-                    first = false;
-                }
-            }
-            out << "\n";
-        }
     }
+
+    if (hasSpills) {
+        out << "M -> ";
+        bool first = true;
+        for (const auto& web : webs) {
+            if (result.assignment[web.id] < 0) {
+                if (!first) out << ", ";
+                out << web.webName();
+                first = false;
+            }
+        }
+        out << "\n";
+    }
+
     out << "# Total registers used: " << result.registersUsed << "\n";
 }

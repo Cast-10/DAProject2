@@ -42,6 +42,56 @@ Supported algorithm variants:
 | `basic` | `algorithm: basic` | Greedy coloring, fails if graph is not K-colorable |
 | `spilling` | `algorithm: spilling, K` | Greedy coloring; spills up to K webs to memory when stuck |
 | `splitting` | `algorithm: splitting, K` | Greedy coloring; splits up to K webs when stuck |
+| `free` | `algorithm: free` | DSATUR coloring — picks vertex with highest saturation at each step |
+
+---
+
+## Graph Data Structure (`DataStructures/Graph.h`)
+
+The project uses an upgraded `Graph<T>` implementation based on the DA 2024/2025
+template. The key additions and changes relative to the original course skeleton
+are listed below.
+
+### Edge representation
+
+Edges are stored as **heap-allocated pointers** (`vector<Edge<T>*>`) rather than
+inline values. This allows edges to carry back-pointers (`orig`, `reverse`) and
+supports bidirectional-edge pairs needed for flow and coloring algorithms.
+
+### New `Vertex` fields
+
+| Field | Type | Purpose |
+|---|---|---|
+| `dist` | `double` | General-purpose distance/priority field. Used by Dijkstra and — negated — as the priority key for DSATUR (see below). |
+| `path` | `Edge<T>*` | Back-pointer for shortest-path reconstruction. |
+| `incoming` | `vector<Edge<T>*>` | List of incoming edges; maintained automatically by `addEdge` / `deleteEdge`. |
+| `satur` | `int` | **Saturation degree** — number of distinct colors already assigned to colored neighbors. Used exclusively by `freeAllocation` (DSATUR). Initialized to 0 before each run. |
+| `queueIndex` | `int` | Heap position index required by `MutablePriorityQueue`. Managed automatically by the queue. |
+| `indegree` | `unsigned int` | Degree in the interference graph, used as a tie-breaker in `operator<`. Initialized to `0` by default to avoid undefined behaviour before `setIndegree` is called. |
+
+### `operator<` — ordering for `MutablePriorityQueue`
+
+```cpp
+bool Vertex<T>::operator<(Vertex<T>& other) const {
+    if (satur == other.satur)
+        return indegree > other.indegree;   // higher degree → higher priority (tie-break)
+    return satur > other.satur;             // higher saturation → higher priority
+}
+```
+
+The comparison is **inverted** relative to the usual `<` so that
+`MutablePriorityQueue::extractMin()` always returns the vertex with the
+**highest** saturation (and, on ties, the highest degree) — exactly what DSATUR
+requires. This means the queue acts as a max-saturation priority queue despite
+being implemented as a min-heap.
+
+### New `Graph` members
+
+| Member | Purpose |
+|---|---|
+| `addBidirectionalEdge(u, v, w)` | Adds edges in both directions and links them via `setReverse`, enabling reverse-edge traversal. |
+| `distMatrix`, `pathMatrix` | Pre-allocated 2-D arrays for Floyd-Warshall; managed by the destructor. |
+| `~Graph()` | Destructor that frees `distMatrix` and `pathMatrix` with `deleteMatrix`. |
 
 ---
 
@@ -204,6 +254,85 @@ the interference graph is rebuilt from scratch before the next coloring attempt.
 K-coloring succeeded (with some webs split); `feasible = false` if the budget
 was exhausted and the graph remained uncolorable. Split webs appear in the
 output as `webX.1` and `webX.2`.
+
+---
+
+### Free — `freeAllocation` (DSATUR)
+
+A register allocator based on the **DSATUR** (Degree of SATURation) graph-coloring
+algorithm, introduced by Brélaz (1979). Unlike the Chaitin-style approach used
+by the other three algorithms, DSATUR does **not** pre-compute a simplification
+order. Instead it colors one vertex at a time, always choosing the vertex that is
+most constrained at that moment.
+
+**Saturation degree**
+
+The *saturation degree* of an uncolored vertex is the number of **distinct
+colors** already assigned to its neighbors. A vertex with higher saturation has
+fewer color choices remaining and is therefore more likely to cause a conflict if
+left for later — so it is colored first.
+
+**Algorithm**
+
+```
+Initialize every vertex with satur = 0 and indegree = degree in the graph.
+Insert all vertices into a max-saturation priority queue (MutablePriorityQueue).
+
+while queue is not empty:
+    v ← extract vertex with highest saturation (ties broken by degree)
+    c ← smallest color index not used by any already-colored neighbor of v
+    if no such c exists within [0, numRegisters):
+        report infeasible
+    assign color c to v
+    for each uncolored neighbor u of v:
+        if c is not yet recorded as forbidden for u:
+            mark c as forbidden for u
+            increment satur(u)
+            call decreaseKey(u)   // re-position u in the priority queue
+
+report feasible; registersUsed = max color used + 1
+```
+
+**Priority queue**
+
+The `MutablePriorityQueue<Vertex<int>>` is a binary min-heap that orders
+vertices by `operator<`. Because `operator<` is defined so that *higher*
+saturation compares as *smaller*, `extractMin` always yields the most-saturated
+vertex. When a neighbor's saturation increases after a coloring step,
+`decreaseKey` (which calls `heapifyUp`) correctly repositions it toward the
+root.
+
+The initial ordering before any vertex is colored uses `indegree` as a
+tie-breaker (all saturations start at 0), matching the standard DSATUR
+initialization that prefers high-degree vertices first.
+
+**Forbidden-color tracking**
+
+A `colors[webId][colorIdx]` boolean matrix records which colors are already
+present in each vertex's neighborhood. This lets the inner loop find the
+smallest available color in O(K) time without re-scanning neighbors.
+
+**Complexity**
+
+- Each vertex is extracted once: O(N log N).
+- Each edge is visited twice (once per endpoint): O(E log N) for the
+  `decreaseKey` calls.
+- Color scan per vertex: O(K).
+- Overall: **O((N + E) log N + N·K)**.
+
+**Comparison with basic**
+
+| Property | basic (Chaitin) | free (DSATUR) |
+|---|---|---|
+| Order determined | before coloring (simplification stack) | dynamically, one vertex at a time |
+| Handles any K-colorable graph | yes (if degree < K condition met) | yes |
+| No spilling / splitting | no fallback | no fallback |
+| Uses `MutablePriorityQueue` | no | yes |
+| Optimality | not guaranteed | not guaranteed, but empirically uses fewer colors on average |
+
+**Result:** `feasible = true` and `registersUsed = max_color + 1` if every web
+received a color within `[0, numRegisters)`; `feasible = false` if any vertex
+had all K colors forbidden by its neighbors.
 
 ---
 

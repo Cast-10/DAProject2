@@ -47,22 +47,6 @@ struct LiveRange {
         return false;
     }
 
-    /**
-     * @brief Checks the special adjacency rule for merging.
-     *
-     * Two ranges should be fused if one ends with '-' on line X and the
-     * other begins with '+' on the same line X (e.g., "i = i + 1").
-     */
-    bool adjacentTo(const LiveRange& other) const {
-        // Check if this ends where other begins (on same line, def meets last-use)
-        for (const auto& p : points)
-            for (const auto& q : other.points)
-                if (p.line == q.line &&
-                    ((p.isLastUse() && q.isDef()) ||
-                     (p.isDef() && q.isLastUse())))
-                    return true;
-        return false;
-    }
 };
 
 #endif //DAPROJECT2_LIVERANGE_H
