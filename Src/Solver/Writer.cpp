@@ -2,7 +2,7 @@
 // Created by ze on 13/05/26.
 //
 
-#include "Writter.h"
+#include "Writer.h"
 #include <fstream>
 #include <iostream>
 #include <vector>
