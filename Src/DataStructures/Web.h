@@ -30,19 +30,47 @@ struct Web {
     std::string varName;            ///< Name of the original variable
     std::map<int, char> points;     ///< line -> annotation ('+', '-', or '\0')
     std::string displayName;        ///< Display name for output, e.g. "web0", "web2.1"
-
+    /**
+     * @brief Default constructor, initializes id to -1.
+     *
+     * @complexity
+     * Time: O(1)
+     */
     Web() : id(-1) {}
+    /**
+     * @brief Constructor with id and variable name.
+     *
+     * @param id Web id.
+     * @param name Variable name.
+     *
+     * @complexity
+     * Time: O(1)
+     */
     Web(int id, const std::string& name)
         : id(id), varName(name), displayName("web" + std::to_string(id)) {}
-
+    /**
+     * @brief Returns web name.
+     *
+     * @return Web's name.
+     *
+     * @complexity
+     * Time: O(1)
+     */
     std::string webName() const {
         return displayName.empty() ? "web" + std::to_string(id) : displayName;
     }
 
     /**
      * @brief Merges a LiveRange into this web.
+     *
      * Adds all its points, preserving annotations.
      * If a line already exists, a '+' or '-' takes priority over '\0'.
+     *
+     * @param range The LiveRange to merge into the web
+     *
+     * @complexity
+     * Time: O(N log M), where N is the number of points in the LiveRange
+     * and M is the number of points already in the Web
      */
     void merge(const LiveRange& range) {
         for (const auto& p : range.points) {
@@ -56,7 +84,14 @@ struct Web {
             }
         }
     }
-
+    /**
+     * @brief Returns the set of line numbers covered by this web.
+     *
+     * @return A set containing all line numbers in the web
+     *
+     * @complexity
+     * Time: O(M log M), where M is the number of points in the web
+     */
     /// Returns the set of raw line numbers covered by this web
     std::set<int> lineSet() const {
         std::set<int> s;
@@ -75,6 +110,10 @@ struct Web {
      *
      * @param other The other web to check against
      * @return true if the two webs interfere
+     *
+     * @complexity
+     * Time: O(M log N), where N is the number of points in the LiveRange
+     * and M is the number of points already in the Web
      */
     bool interferesWith(const Web& other) const {
         for (const auto& [lineA, annotA] : points) {
@@ -97,8 +136,14 @@ struct Web {
 
     /**
      * @brief Produces the formatted output string for this web's points.
+     *
      * Points are listed in ascending order with their annotations.
      * Example: "1+,2,3,4,5,6-"
+     *
+     * @return Formatted string representing the points in the web.
+     *
+     * @complexity
+     * Time: O(M), where M is the number of points in the web.
      */
     std::string pointsString() const {
         std::string result;
