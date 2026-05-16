@@ -11,17 +11,28 @@
 using namespace std;
 
 /**
- * Basic register allocation via Chaitin-style graph coloring simplification.
+ * @brief Basic register allocation via Chaitin-style graph coloring simplification.
  *
  * Phase 1 – Simplification:
  *   Repeatedly remove vertices whose current degree < numRegisters, pushing
  *   them onto a stack. If the graph empties completely, a K-coloring exists.
  *   If we get stuck (every remaining vertex has degree >= K), allocation is
  *   infeasible and we report failure without spilling.
- *
  * Phase 2 – Coloring:
  *   Pop vertices from the stack and assign the smallest register index not
  *   already taken by any neighbor in the original interference graph.
+ *
+ * @param webs Vector of webs to allocate.
+ * @param ig Interference graph between webs.
+ * @param config Allocation configuration containing the number of registers.
+ *
+ * @return Results containing:
+ * - Register assignments for each web.
+ * - Number of registers used.
+ * - Feasibility status.
+ *
+ * @complexity
+ * Time: O(V + E)
  */
 AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, const AlgorithmConfig& config) {
     AllocationResult result;
@@ -108,7 +119,7 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
 }
 
 /**
- * Register allocation via graph coloring with controlled spilling.
+ * @brief Register allocation via graph coloring with controlled spilling.
  *
  * Extension of basicAllocation: when simplification gets stuck (every
  * remaining node has degree >= numRegisters), instead of failing immediately
@@ -127,6 +138,17 @@ AllocationResult basicAllocation(const vector<Web>& webs, const Graph<int>& ig, 
  * coloring phase. result.feasible is true whenever the remaining graph is
  * successfully K-colored, even if spills occurred; it is false only when
  * the budget is exhausted and coloring is still impossible.
+ *
+ * @param webs Vector of webs to allocate.
+ * @param ig Interference graph between webs.
+ * @param config Allocation configuration containing the number of registers.
+ *
+ * @return AllocationResult containing assignments, feasibility,
+ * spills, and register number.
+ *
+ * @complexity
+ * Time: O(S * V + E), with S being the maximum number of spills,
+ * V the number of webs and E the number of interference edges.
  */
 AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& ig,
                                     const AlgorithmConfig& config) {
@@ -223,13 +245,36 @@ AllocationResult spillingAllocation(const vector<Web>& webs, const Graph<int>& i
     return result;
 }
 
-// --- Splitting helpers ---
-
+/**
+ * @brief Reindexes webs.
+ *
+ * @param webs Vector of webs to allocate.
+ *
+ * @complexity
+ * Time: O(W), with W being the number of webs.
+ */
 static void reindexWebs(vector<Web>& webs) {
     for (int i = 0; i < (int)webs.size(); i++)
         webs[i].id = i;
 }
-
+/**
+ * @brief Splits a web into two halves at a given split point.
+ *
+ * The splitting:
+ * - Creates two new webs.
+ * - The first half ends with a '-'.
+ * - The second half begins with a '+'.
+ *
+ * @param w Web to split.
+ * @param splitIdx Index of the split point.
+ * @param id1 Identifier for the first half.
+ * @param id2 Identifier for the second half.
+ *
+ * @return Pair of halves.
+ *
+ * @complexity
+ * Time: O(P), with P being the number of program points in a web.
+ */
 // Split web w after pts[splitIdx]: first half ends with '-', second begins with '+'
 static pair<Web, Web> doSplit(const Web& w, int splitIdx, int id1, int id2) {
     vector<pair<int,char>> pts(w.points.begin(), w.points.end());
@@ -252,6 +297,19 @@ static pair<Web, Web> doSplit(const Web& w, int splitIdx, int id1, int id2) {
     return {h1, h2};
 }
 
+
+/**
+ * @brief Finds the best split point for a web.
+ *
+ * @param w Web to analyze.
+ * @param webs Current web set.
+ * @param webIdx Index of the web being split.
+ *
+ * @return Best split index.
+ *
+ * @complexity
+ * Time: O(P * (P + W)), with P being the number of program points in a web and W the number of webs.
+ */
 // For web at webIdx, find the split index that minimises max(deg(h1), deg(h2))
 static int bestSplitIdx(const Web& w, const vector<Web>& webs, int webIdx) {
     vector<pair<int,char>> pts(w.points.begin(), w.points.end());
@@ -284,7 +342,7 @@ static int bestSplitIdx(const Web& w, const vector<Web>& webs, int webIdx) {
 }
 
 /**
- * Register allocation via graph coloring with controlled web splitting.
+ @brief Register allocation via graph coloring with controlled web splitting.
  *
  * Tries basic allocation first. When the graph is not K-colorable, selects
  * the highest-degree web and splits it at the point that minimises the maximum
@@ -292,6 +350,16 @@ static int bestSplitIdx(const Web& w, const vector<Web>& webs, int webIdx) {
  * times. The split point becomes a '-' (save) in the first half and a '+'
  * (reload) in the second half; by the def/use non-interference rule the two
  * halves never interfere with each other.
+ *
+ * @param inputWebs Initial web set.
+ *
+ * @param ig .
+ *
+ * @param config Allocation configuration containing the number of registers.
+ *
+ * @return AllocationResult containing assignments and feasibility.
+ *
+ * @complexity
  */
 AllocationResult splittingAllocation(const vector<Web>& inputWebs, const Graph<int>& /*ig*/,
                                      const AlgorithmConfig& config) {
@@ -334,7 +402,17 @@ AllocationResult splittingAllocation(const vector<Web>& inputWebs, const Graph<i
     fail.feasible = false;
     return fail;
 }
-
+/**
+ * @brief 
+ *
+ * @param inputWebs Initial web set.
+ * @param ig Interference graph.
+ * @param config Allocation configuration containing the number of registers.
+ *
+ * @return AllocationResult with assignments and feasibility status.
+ *
+ * @ecomplexity
+ */
 AllocationResult freeAllocation(const vector<Web>& inputWebs, const Graph<int>& ig,
                                 const AlgorithmConfig& config) {
     AllocationResult result;
